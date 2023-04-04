@@ -1,0 +1,92 @@
+#!/bin/sh
+
+### BEGIN INIT INFO
+# Provides:          pxalarm
+# Required-Start:    $local_fs $remote_fs $network $time
+# Required-Stop:     $local_fs $remote_fs $network
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: pxalarm daemon
+# Description:       pxalarm daemon reads $HOME/.config/pxalarm/config
+### END INIT INFO
+
+POSIXLY_CORRECT=1
+export POSIXLY_CORRECT
+
+# Run the script headless
+nohup sh -c 'while true; do
+  if [ -f "$HOME/.config/pxalarm/config" ]
+  then
+
+    while read line
+    do
+
+      if printf "$line" | grep -q "] "
+      then
+
+        year=$(date +%Y)
+        month=$(date +%m)
+        day=$(date +%d)
+        hour=$(date +%H)
+        minutes=$(date +%M)
+        secconds=$(date +%S)
+        linedate=$(printf "$line" | sed "s/.*\[\(.*\)\].*/\1/")
+
+        lineyear=$(printf "$linedate" | awk -F"-" "{print \$1}")
+        if [ "$lineyear" != "*" ]; then
+            if [ "$lineyear" != "$year" ]; then
+              continue
+            fi
+        fi
+
+        linemonth=$(printf "$linedate" | awk -F "-" "{print \$2}")
+        if [ "$linemonth" != "*" ]; then
+            if [ "$linemonth" != "$month" ]; then
+              continue
+            fi
+        fi
+
+        lineday=$(printf "$linedate" | awk -F "-" "{print \$3}" | cut -d" " -f1)
+        if [ "$lineday" != "*" ]; then
+            if [ "$lineday" != "$day" ]; then
+              continue
+            fi
+        fi
+
+        linehour=$(printf "$linedate" | awk -F ":" "{print \$1}" | cut -d" " -f2)
+        if [ "$linehour" != "*" ]; then
+            if [ "$linehour" != "$hour" ]; then
+              continue
+            fi
+        fi
+
+        lineminutes=$(printf "$linedate" | awk -F ":" "{print \$2}")
+        if [ "$lineminutes" != "*" ]; then
+            if [ "$lineminutes" != "$minutes" ]; then
+              continue
+            fi
+        fi
+
+        linesecconds=$(printf "$linedate" | awk -F ":" "{print \$3}")
+        if [ "$linesecconds" != "*" ]; then
+            if [ "$linesecconds" != "$secconds" ]; then
+              continue
+            fi
+        fi
+
+        # execute
+        command=$(printf "$line" | awk -F"] " "{print \$2}")
+        eval "$command"
+
+      fi
+
+    done < "$HOME/.config/pxalarm/config"
+
+  fi
+
+  sleep $(( 60 - $(date +%S) ))
+
+done' # > /dev/null 2>&1 &
+
+# Output a message to indicate that the daemon has started
+printf "Alarm daemon started."
