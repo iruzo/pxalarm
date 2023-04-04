@@ -15,8 +15,11 @@ export POSIXLY_CORRECT
 
 # Run the script headless
 nohup sh -c 'while true; do
+  timer=""
   if [ -f "$HOME/.config/pxalarm/config" ]
   then
+
+    timer=$(grep "^timer=" "$HOME/.config/pxalarm/config" |  sed -e "s/^timer=//" -e "/^[^0-9]*$/d" | tail -n1)
 
     while read line
     do
@@ -83,8 +86,12 @@ nohup sh -c 'while true; do
     done < "$HOME/.config/pxalarm/config"
 
   fi
+  if [ -z "$timer" ]; then
+      sleep $(( 60 - $(date +%S) ))
+  else
+      sleep $timer
+  fi
 
-  sleep $(( 60 - $(date +%S) ))
 
 done' # > /dev/null 2>&1 &
 
