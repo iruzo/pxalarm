@@ -29,7 +29,6 @@ nohup sh -c 'while true; do
         day=$(date +%d)
         hour=$(date +%H)
         minutes=$(date +%M)
-        secconds=$(date +%S)
         linedate=$(printf "$line" | sed "s/.*\[\(.*\)\].*/\1/")
 
         lineyear=$(printf "$linedate" | awk -F"-" "{print \$1}")
@@ -67,13 +66,6 @@ nohup sh -c 'while true; do
             fi
         fi
 
-        linesecconds=$(printf "$linedate" | awk -F ":" "{print \$3}")
-        if [ "$linesecconds" != "*" ]; then
-            if [ "$linesecconds" != "$secconds" ]; then
-              continue
-            fi
-        fi
-
         # execute
         command=$(printf "$line" | awk -F"] " "{print \$2}")
         eval "$command"
@@ -86,7 +78,7 @@ nohup sh -c 'while true; do
 
   sleep $(( 60 - $(date +%S) ))
 
-done' # > /dev/null 2>&1 &
+done' > /dev/null 2>&1 &
 
 # Output a message to indicate that the daemon has started
 printf "Alarm daemon started."
