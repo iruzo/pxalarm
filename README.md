@@ -1,23 +1,36 @@
 # description
 
-`pxalarm` is a simple POSIX sh script that periodically checks a config file and executes commands at specified times.
+`pxalarm` is a simple POSIX sh script that periodically checks a config file and
+executes commands at specified times.
 
 # usage
 
 1. Create a config file at `$XDG_CONFIG_HOME/pxalarm/config` or at `$HOME/.config/pxalarm/config`.
+
 2. Set your alarms in that file with the following format:
+
 ```
 [YYYY-MM-DD HH:mm] command
 ```
-3. Launch the program using the following command. The program will run unattended in the background and check the config file every minute.
+
+3. Launch the program with the following command. It will check the config
+file every minute. The `-d` command-line argument will cause the program to run
+unattended in the background as a daemon. You can also omit `-d` to run it in
+the foreground, if you want to see the logs for example.
+
 ```sh
-pxalarm
+./pxalarm -d
 ```
-**Note**: The program will keep running in the background and checking the config file every minute until stopped.
+
+**Note**: The program will continue to run in the background (if the `-d` flag
+was passed) and check the config file every minute until stopped. You can stop
+it at any time by running `pkill pxalarm`, or by pressing Ctrl-C if it is
+running in the foreground.
 
 # config file
 
-Time can be replaced with * to not check that part. The following formats are supported:
+Time can be replaced with * to match any time. The following formats are
+supported:
 ```
 [YYYY-MM-DD HH:mm] command           # command will be executed at that specific moment
 [*-MM-DD HH:mm] command              # command will be executed every year at that specific moment.

@@ -13,9 +13,36 @@
 POSIXLY_CORRECT=1
 export POSIXLY_CORRECT
 
-# Run the script headless
-nohup sh -c 'while true; do
+while getopts dh opt 2>/dev/null
+do
+  case "$opt" in
+    d)
+      daemonize=1
+      ;;
+    h)
+      echo "
+Usage: $0 [-dh]
 
+POSIX sh simple alarm
+
+	-d  Daemonize and run in the background
+	-h  Print this help text" >&2
+      exit 0
+      ;;
+    ?)
+      echo "Usage: $0 [-dh]" >&2
+      exit 1
+      ;;
+  esac
+done
+
+if [ -n "$daemonize" ]; then
+  nohup "$0" >/dev/null 2>&1 &
+  echo "Alarm daemon started"
+  exit 0
+fi
+
+while true; do
   config_path="${XDG_CONFIG_HOME}/pxalarm/config"
 
   if [ ! -f "$config_path" ]; then
@@ -85,7 +112,4 @@ nohup sh -c 'while true; do
 
   fi
 
-done' > /dev/null 2>&1 &
-
-# Output a message to indicate that the daemon has started
-printf "Alarm daemon started."
+done
