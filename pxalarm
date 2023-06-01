@@ -7,7 +7,7 @@
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
 # Short-Description: pxalarm daemon
-# Description:       pxalarm daemon reads $HOME/.config/pxalarm/config
+# Description:       pxalarm daemon reads $XDG_CONFIG_HOME/pxalarm/config
 ### END INIT INFO
 
 POSIXLY_CORRECT=1
@@ -16,9 +16,15 @@ export POSIXLY_CORRECT
 # Run the script headless
 nohup sh -c 'while true; do
 
+  config_path="${XDG_CONFIG_HOME}/pxalarm/config"
+
+  if [ ! -f "$config_path" ]; then
+    config_path="$HOME/.config/pxalarm/config"
+  fi
+
   sleep $(( 60 - $(date +%S) ))
 
-  if [ -f "$HOME/.config/pxalarm/config" ]
+  if [ -f "$config_path" ]
   then
 
     while read line
@@ -75,7 +81,7 @@ nohup sh -c 'while true; do
 
       fi
 
-    done < "$HOME/.config/pxalarm/config"
+    done < "$config_path"
 
   fi
 

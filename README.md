@@ -4,7 +4,7 @@
 
 # usage
 
-1. Create a config file at `$HOME/.config/pxalarm/config`.
+1. Create a config file at `$XDG_CONFIG_HOME/pxalarm/config` or at `$HOME/.config/pxalarm/config`.
 2. Set your alarms in that file with the following format:
 ```
 [YYYY-MM-DD HH:mm] command
