@@ -13,28 +13,36 @@
 POSIXLY_CORRECT=1
 export POSIXLY_CORRECT
 
-while getopts dh opt 2>/dev/null
-do
+while getopts dh opt 2>/dev/null; do
   case "$opt" in
-    d)
-      daemonize=1
-      ;;
-    h)
-      echo "
+  d)
+    daemonize=1
+    ;;
+  h)
+    echo "\
 Usage: $0 [-dh]
 
 POSIX sh simple alarm
 
 	-d  Daemonize and run in the background
 	-h  Print this help text" >&2
-      exit 0
-      ;;
-    ?)
-      echo "Usage: $0 [-dh]" >&2
-      exit 1
-      ;;
+    exit 0
+    ;;
+  ?)
+    echo "Usage: $0 [-dh]" >&2
+    exit 1
+    ;;
   esac
 done
+
+config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/pxalarm"
+config_path="$config_dir/config"
+
+if [ ! -f "$config_path" ]; then
+  echo "No config file found, writing an empty configuration to $config_path" >&2
+  mkdir -p "$config_dir"
+  touch "$config_path"
+fi
 
 if [ -n "$daemonize" ]; then
   nohup "$0" >/dev/null 2>&1 &
@@ -43,73 +51,22 @@ if [ -n "$daemonize" ]; then
 fi
 
 while true; do
-  config_path="${XDG_CONFIG_HOME}/pxalarm/config"
+  sleep $((60 - $(date +%S)))
 
-  if [ ! -f "$config_path" ]; then
-    config_path="$HOME/.config/pxalarm/config"
-  fi
+  while read -r line; do
+    # Validate syntax
+    # The date format must be correct to avoid problems using it as a regex
+    if echo "$line" | grep -Ev '^\[([0-9]{4}|\*)-([0-9]{2}|\*)-([0-9]{2}|\*) ([0-9]{2}|\*):([0-9]{2}|\*)\] .*$' >/dev/null; then
+      echo "Invalid alarm: '$line'" >&2
+      continue
+    fi
 
-  sleep $(( 60 - $(date +%S) ))
-
-  if [ -f "$config_path" ]
-  then
-
-    while read line
-    do
-
-      if printf "$line" | grep -q "] "
-      then
-
-        year=$(date +%Y)
-        month=$(date +%m)
-        day=$(date +%d)
-        hour=$(date +%H)
-        minutes=$(date +%M)
-        linedate=$(printf "$line" | sed "s/.*\[\(.*\)\].*/\1/")
-
-        lineyear=$(printf "$linedate" | awk -F"-" "{print \$1}")
-        if [ "$lineyear" != "*" ]; then
-            if [ "$lineyear" != "$year" ]; then
-              continue
-            fi
-        fi
-
-        linemonth=$(printf "$linedate" | awk -F "-" "{print \$2}")
-        if [ "$linemonth" != "*" ]; then
-            if [ "$linemonth" != "$month" ]; then
-              continue
-            fi
-        fi
-
-        lineday=$(printf "$linedate" | awk -F "-" "{print \$3}" | cut -d" " -f1)
-        if [ "$lineday" != "*" ]; then
-            if [ "$lineday" != "$day" ]; then
-              continue
-            fi
-        fi
-
-        linehour=$(printf "$linedate" | awk -F ":" "{print \$1}" | cut -d" " -f2)
-        if [ "$linehour" != "*" ]; then
-            if [ "$linehour" != "$hour" ]; then
-              continue
-            fi
-        fi
-
-        lineminutes=$(printf "$linedate" | awk -F ":" "{print \$2}")
-        if [ "$lineminutes" != "*" ]; then
-            if [ "$lineminutes" != "$minutes" ]; then
-              continue
-            fi
-        fi
-
-        # execute
-        command=$(printf "$line" | awk -F"] " "{print \$2}")
-        eval "$command"
-
-      fi
-
-    done < "$config_path"
-
-  fi
-
+    # Construct a regex from the line's date string
+    date_pattern=$(printf "%s" "$line" | sed 's/\[\(.*\)\].*/\1/; s/\*/[0-9]+/g')
+    # Check if current date matches the pattern
+    if date '+%Y-%m-%d %H:%M' | grep -E "$date_pattern" >/dev/null; then
+      # Execute the command
+      nohup sh -c "$(echo "$line" | awk -F"] " '{print $2}')" >/dev/null 2>&1 &
+    fi
+  done <"$config_path"
 done
