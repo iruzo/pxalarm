@@ -39,12 +39,18 @@ config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/pxalarm"
 config_path="$config_dir/config"
 
 if [ ! -f "$config_path" ]; then
-  echo "No config file found, writing an empty configuration to $config_path" >&2
+  echo "No config file found, writing a sample configuration to $config_path" >&2
   mkdir -p "$config_dir"
-  touch "$config_path"
+  cat <<EOF >"$config_path"
+# The alarm format and a few samples are shown below. Any of the date and time
+# components may be replaced by a wildcard "*".
+# [YYYY-MM-DD HH:MM] <shell command>
+# [*-01-* 00:00] notify-send "Happy New Year!"
+# [*-*-* 12:00] notify-send "Time for lunch!"
+EOF
 fi
 
-if [ -n "$daemonize" ]; then
+if [ "$daemonize" ]; then
   nohup "$0" >/dev/null 2>&1 &
   echo "Alarm daemon started"
   exit 0
@@ -54,9 +60,12 @@ while true; do
   sleep $((60 - $(date +%S)))
 
   while read -r line; do
+    # Continue if line is a comment (starts with a #)
+    [ "${line%%#*}" ] || continue
+
     # Validate syntax
     # The date format must be correct to avoid problems using it as a regex
-    if echo "$line" | grep -Ev '^\[([0-9]{4}|\*)-([0-9]{2}|\*)-([0-9]{2}|\*) ([0-9]{2}|\*):([0-9]{2}|\*)\] .*$' >/dev/null; then
+    if echo "$line" | grep -Evq '^\[([0-9]{4}|\*)-([0-9]{2}|\*)-([0-9]{2}|\*) ([0-9]{2}|\*):([0-9]{2}|\*)\] .*$'; then
       echo "Invalid alarm: '$line'" >&2
       continue
     fi
@@ -64,7 +73,7 @@ while true; do
     # Construct a regex from the line's date string
     date_pattern=$(printf "%s" "$line" | sed 's/\[\(.*\)\].*/\1/; s/\*/[0-9]+/g')
     # Check if current date matches the pattern
-    if date '+%Y-%m-%d %H:%M' | grep -E "$date_pattern" >/dev/null; then
+    if date '+%Y-%m-%d %H:%M' | grep -Eq "$date_pattern"; then
       # Execute the command
       nohup sh -c "$(echo "$line" | awk -F"] " '{print $2}')" >/dev/null 2>&1 &
     fi
