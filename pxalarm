@@ -64,18 +64,17 @@ while true; do
     [ "${line%%#*}" ] || continue
 
     # Validate syntax
-    # The date format must be correct to avoid problems using it as a regex
+    # The date format must be correct to avoid problems using it as a glob
     if echo "$line" | grep -Evq '^\[([0-9]{4}|\*)-([0-9]{2}|\*)-([0-9]{2}|\*) ([0-9]{2}|\*):([0-9]{2}|\*)\] .*$'; then
       echo "Invalid alarm: '$line'" >&2
       continue
     fi
 
-    # Construct a regex from the line's date string
-    date_pattern=$(printf "%s" "$line" | sed 's/\[\(.*\)\].*/\1/; s/\*/[0-9]+/g')
     # Check if current date matches the pattern
-    if date '+%Y-%m-%d %H:%M' | grep -Eq "$date_pattern"; then
-      # Execute the command
-      nohup sh -c "$(echo "$line" | awk -F"] " '{print $2}')" >/dev/null 2>&1 &
-    fi
+    case "[$(date '+%Y-%m-%d %H:%M')" in
+      ${line%%] *})
+        nohup sh -c "${line#*] }" >/dev/null 2>&1 &
+        ;;
+    esac
   done <"$config_path"
 done
