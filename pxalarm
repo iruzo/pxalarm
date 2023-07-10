@@ -65,15 +65,15 @@ while true; do
 
     # Validate syntax
     # The date format must be correct to avoid problems using it as a glob
-    if echo "$line" | grep -Evq '^\[([0-9]{4}|\*)-([0-9]{2}|\*)-([0-9]{2}|\*) ([0-9]{2}|\*):([0-9]{2}|\*)\] .*$'; then
+    if echo "$line" | grep -Evq '^\[([0-9]{4}|\*)(-([0-9]{2}|\*)){2} ([0-9]{2}|\*):([0-9]{2}|\*)\]'; then
       echo "Invalid alarm: '$line'" >&2
       continue
     fi
 
     # Check if current date matches the pattern
     case "[$(date '+%Y-%m-%d %H:%M')" in
-      ${line%%] *})
-        nohup sh -c "${line#*] }" >/dev/null 2>&1 &
+      ${line%%]*})
+        nohup sh -c "${line#*]}" >/dev/null 2>&1 &
         ;;
     esac
   done <"$config_path"
