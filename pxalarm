@@ -20,12 +20,12 @@ while getopts dh opt 2>/dev/null; do
       ;;
     h)
       echo "\
-        Usage: $0 [-dh]
+Usage: $0 [-dh]
 
-        POSIX sh simple alarm
+POSIX sh simple alarm
 
-        -d  Daemonize and run in the background
-        -h  Print this help text" >&2
+-d  Daemonize and run in the background
+-h  Print this help text" >&2
       exit 0
       ;;
     ?)
