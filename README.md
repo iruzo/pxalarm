@@ -3,6 +3,17 @@
 `pxalarm` is a simple POSIX sh script that periodically checks a config file and
 executes commands at specified times.
 
+# installation
+
+- Alpine
+```sh
+apk add pxalarm
+```
+- Others
+```sh
+curl https://raw.githubusercontent.com/iruzo/pxalarm/main/pxalarm -o pxalarm
+```
+
 # usage
 
 1. Create a config file at `$XDG_CONFIG_HOME/pxalarm/config` or at `$HOME/.config/pxalarm/config`.
