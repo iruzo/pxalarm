@@ -13,8 +13,15 @@
 POSIXLY_CORRECT=1
 export POSIXLY_CORRECT
 
-while getopts dh opt 2>/dev/null; do
+config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/pxalarm"
+config_path="$config_dir/config"
+daemonize=0
+
+while getopts s:dh opt 2>/dev/null; do
   case "$opt" in
+    s)
+      config_path=$OPTARG
+      ;;
     d)
       daemonize=1
       ;;
@@ -34,9 +41,6 @@ POSIX sh simple alarm
       ;;
   esac
 done
-
-config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/pxalarm"
-config_path="$config_dir/config"
 
 if [ ! -f "$config_path" ]; then
   echo "No config file found, writing a sample configuration to $config_path" >&2

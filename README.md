@@ -16,7 +16,12 @@ curl https://raw.githubusercontent.com/iruzo/pxalarm/main/pxalarm -o pxalarm
 
 # usage
 
-1. Create a config file at `$XDG_CONFIG_HOME/pxalarm/config` or at `$HOME/.config/pxalarm/config`.
+1. Create a config file or configure a custom path for your config file:
+- Default config file paths are `$XDG_CONFIG_HOME/pxalarm/config` and `$HOME/.config/pxalarm/config`.
+- You can set a custom path with `-s` like so:
+```
+./pxalarm -s [my_custom_path]
+```
 
 2. Set your alarms in that file with the following format:
 
