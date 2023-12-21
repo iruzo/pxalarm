@@ -54,7 +54,7 @@ if [ ! -f "$config_path" ]; then
 EOF
 fi
 
-if [ "$daemonize" ]; then
+if [ "$daemonize" -eq 1 ]; then
   nohup "$0" >/dev/null 2>&1 &
   echo "Alarm daemon started"
   exit 0
