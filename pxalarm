@@ -17,9 +17,9 @@ config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/pxalarm"
 config_path="$config_dir/config"
 daemonize=0
 
-while getopts s:dh opt 2>/dev/null; do
+while getopts c:dh opt 2>/dev/null; do
   case "$opt" in
-    s)
+    c)
       config_path=$OPTARG
       ;;
     d)
@@ -31,6 +31,8 @@ Usage: $0 [-dh]
 
 POSIX sh simple alarm
 
+-c  Override config path (\$XDG_CONFIG_HOME/.config/pxalarm/config || ~/.config/pxalarm/config)
+    e.g. -c '/your/new/config/file'
 -d  Daemonize and run in the background
 -h  Print this help text" >&2
       exit 0
@@ -46,11 +48,23 @@ if [ ! -f "$config_path" ]; then
   echo "No config file found, writing a sample configuration to $config_path" >&2
   mkdir -p "$config_dir"
   cat <<EOF >"$config_path"
-# The alarm format and a few samples are shown below. Any of the date and time
-# components may be replaced by a wildcard "*".
-# [YYYY-MM-DD HH:MM] <shell command>
-# [*-01-* 00:00] notify-send "Happy New Year!"
-# [*-*-* 12:00] notify-send "Time for lunch!"
+# YYYY: 4-digit year
+# mm: 2-digit month
+# DD: 2-digit day
+# HH: 2-digit hour (24-hour format)
+# MM: 2-digit minute
+# u: weekday (1 for Monday, 2 for Tuesday, ..., 7 for Sunday)
+# q: quarter of year (1, 2, 3, 4)
+
+# [YYYY-mm-DD HH:MM u q] command            # command will be executed at that specific moment if that day is u and quarter of year is q.
+# [*-mm-DD HH:MM u q] command               # command will be executed every year at that specific moment if that day is u and quarter of year is q.
+# [YYYY-*-DD HH:MM u q] command             # command will be executed every month of YYYY at that specific moment if that day is u and quarter of year is q.
+# [YYYY-mm-* HH:MM u q] command             # command will be executed every day of that month at that specific moment if that day is u and quarter of year is q.
+# [YYYY-mm-DD *:MM u q] command             # command will be executed every hour at minute mm of that day if that day is u and quarter of year is q.
+# [YYYY-mm-DD HH:* u q] command             # command will be executed every minute of that hour on day u and quarter of year q.
+# [YYYY-mm-DD HH:MM * q] command            # command will be executed at that specific moment every day on the quarter q of the year.
+# [YYYY-mm-DD HH:MM u *] command            # command will be executed at that specific moment on day u, no matter the quarter of year.
+# [*-*-* *:* * *] command                   # command will always be executed every minute.
 EOF
 fi
 
@@ -69,13 +83,13 @@ while true; do
 
     # Validate syntax
     # The date format must be correct to avoid problems using it as a glob
-    if echo "$line" | grep -Evq '^\[([0-9]{4}|\*)(-([0-9]{2}|\*)){2} ([0-9]{2}|\*):([0-9]{2}|\*)\]'; then
+    if echo "$line" | grep -Evq '^\[([0-9]{4}|\*)(-([0-9]{2}|\*)){2} ([0-9]{2}|\*):([0-9]{2}|\*) ([1-7]|\*) ([1-4]|\*)\]'; then
       echo "Invalid alarm: '$line'" >&2
       continue
     fi
 
     # Check if current date matches the pattern
-    case "[$(date '+%Y-%m-%d %H:%M')" in
+    case "[$(date '+%Y-%m-%d %H:%M %u %q')" in
       ${line%%]*})
         nohup sh -c "${line#*]}" >/dev/null 2>&1 &
         ;;
