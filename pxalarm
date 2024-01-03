@@ -69,7 +69,15 @@ EOF
 fi
 
 if [ "$daemonize" -eq 1 ]; then
-  nohup "$0" >/dev/null 2>&1 &
+  # Create a new list of parameters without the one that triggers daemonization
+  params=""
+  for arg do
+    case $arg in
+      *"-d"*) ;;  # If the argument is -d, skip it
+      *) params="$params \"$arg\"" ;;  # Otherwise, add it to the new list
+    esac
+  done
+  eval "nohup \"$0\" $params >/dev/null 2>&1 &"
   echo "Alarm daemon started"
   exit 0
 fi
