@@ -3,16 +3,11 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-23.05";
-    pxalarm-repo = {
-      url = "github:iruzo/pxalarm";
-      flake = false;
-    };
   };
 
   outputs = {
     self,
     nixpkgs,
-    pxalarm-repo,
     ...
   } @ inputs: let
     systems = [
@@ -31,7 +26,7 @@
 
     packages = forAllSystems (system: let
       pkgs = nixpkgs.legacyPackages.${system};
-      pkgs-pxalarm = pkgs.writeShellScriptBin "pxalarm" (builtins.readFile "${pxalarm-repo}/pxalarm");
+      pkgs-pxalarm = pkgs.writeShellScriptBin "pxalarm" (builtins.readFile ./pxalarm);
     in rec {
       pxalarm = pkgs-pxalarm;
       default = pxalarm;
