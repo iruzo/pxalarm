@@ -9,7 +9,12 @@
     };
   };
 
-  outputs = { self, nixpkgs, pxalarm-repo, ... } @ inputs: let
+  outputs = {
+    self,
+    nixpkgs,
+    pxalarm-repo,
+    ...
+  } @ inputs: let
     systems = [
       "aarch64-darwin"
       "aarch64-linux"
@@ -18,16 +23,23 @@
       "x86_64-linux"
     ];
     forAllSystems = f: nixpkgs.lib.genAttrs systems (system: f system);
-
-  in {
+  in rec {
     formatter = forAllSystems (system: let
       pkgs = nixpkgs.legacyPackages.${system};
     in
       pkgs.alejandra);
 
-    devShells = forAllSystems (system: let
+    packages = forAllSystems (system: let
       pkgs = nixpkgs.legacyPackages.${system};
       pkgs-pxalarm = pkgs.writeShellScriptBin "pxalarm" (builtins.readFile "${pxalarm-repo}/pxalarm");
+    in rec {
+      pxalarm = pkgs-pxalarm;
+      default = pxalarm;
+    });
+
+    devShells = forAllSystems (system: let
+      pkgs = nixpkgs.legacyPackages.${system};
+      pkgs-pxalarm = packages.${system}.default;
     in rec {
       default = pxalarm;
       pxalarm =
