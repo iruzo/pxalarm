@@ -48,23 +48,18 @@ if [ ! -f "$config_path" ]; then
   echo "No config file found, writing a sample configuration to $config_path" >&2
   mkdir -p "$config_dir"
   cat <<EOF >"$config_path"
-# YYYY: 4-digit year
-# mm: 2-digit month
-# DD: 2-digit day
-# HH: 2-digit hour (24-hour format)
-# MM: 2-digit minute
-# u: weekday (1 for Monday, 2 for Tuesday, ..., 7 for Sunday)
-# q: quarter of year (1, 2, 3, 4)
-
-# [YYYY-mm-DD HH:MM u q] command            # command will be executed at that specific moment if that day is u and quarter of year is q.
-# [*-mm-DD HH:MM u q] command               # command will be executed every year at that specific moment if that day is u and quarter of year is q.
-# [YYYY-*-DD HH:MM u q] command             # command will be executed every month of YYYY at that specific moment if that day is u and quarter of year is q.
-# [YYYY-mm-* HH:MM u q] command             # command will be executed every day of that month at that specific moment if that day is u and quarter of year is q.
-# [YYYY-mm-DD *:MM u q] command             # command will be executed every hour at minute mm of that day if that day is u and quarter of year is q.
-# [YYYY-mm-DD HH:* u q] command             # command will be executed every minute of that hour on day u and quarter of year q.
-# [YYYY-mm-DD HH:MM * q] command            # command will be executed at that specific moment every day on the quarter q of the year.
-# [YYYY-mm-DD HH:MM u *] command            # command will be executed at that specific moment on day u, no matter the quarter of year.
-# [*-*-* *:* * *] command                   # command will always be executed every minute.
+# ┌───── min (00-59, * = any)
+# │ ┌─── hour (00-23)
+# │ │ ┌─ day-of-month (01-31)
+# │ │ │ ┌ month (01-12)
+# │ │ │ │ ┌ weekday (1-7, 1 = Monday)
+# │ │ │ │ │ ┌─[optional] year    (YYYY)
+# │ │ │ │ │ │ ┌─[optional] quarter (1-4)
+# │ │ │ │ │ │ │
+# * * * * *                 echo "tick every minute"
+# 00 08 * * 1               printf '%s\n' "every Monday 08:00"
+# 30 07 01 01 * 2026        echo "07:30 on 1 Jan 2026"
+# *  *  *  * * * 1          echo "every minute, but only in Q1"
 EOF
 fi
 
@@ -82,25 +77,39 @@ if [ "$daemonize" -eq 1 ]; then
   exit 0
 fi
 
+datespec_fmt='%M %H %d %m %u %Y %q'   # min hr dom mon dow year q
+
 while true; do
-  sleep $((60 - $(date +%S)))
+    sleep $((60 - $(date +%S)))
 
-  while read -r line; do
-    # Continue if line is a comment (starts with a #)
-    [ "${line%%#*}" ] || continue
+    datestr=$(date +"$datespec_fmt")         # "04 13 13 05 2 2025 2"  (example)
 
-    # Validate syntax
-    # The date format must be correct to avoid problems using it as a glob
-    if echo "$line" | grep -Evq '^\[([0-9]{4}|\*)(-([0-9]{2}|\*)){2} ([0-9]{2}|\*):([0-9]{2}|\*) ([1-7]|\*) ([1-4]|\*)\]'; then
-      echo "Invalid alarm: '$line'" >&2
-      continue
-    fi
+    while IFS= read -r line || [ -n "$line" ]; do
+        # skip blank lines & comments
+        [ -z "${line%%#*}" ] && continue
 
-    # Check if current date matches the pattern
-    case "[$(date '+%Y-%m-%d %H:%M %u %q')" in
-      ${line%%]*})
-        nohup sh -c "${line#*]}" >/dev/null 2>&1 &
-        ;;
-    esac
-  done <"$config_path"
+        # split the line into at most 8 words: 7 schedule fields + rest-of-line
+        set -- $line
+        [ $# -lt 6 ] && { echo "Invalid entry: $line" >&2; continue; }
+
+        # pull out the first five mandatory fields
+        min=$1; hr=$2; dom=$3; mon=$4; dow=$5; shift 5
+
+        # default year/quarter
+        year='*'; qtr='*'
+
+        case $# in
+            0)  :                        ;;  # 5-field crontab
+            1)  year=$1; shift           ;;  # 6 fields
+            *)  year=$1; qtr=$2; shift 2 ;;  # 7 (or more, ignore extras)
+        esac
+
+        cmd=$*                               # everything that’s left
+
+        # build a glob pattern and compare
+        pattern="$min $hr $dom $mon $dow $year $qtr"
+        case "$datestr" in
+            $pattern) nohup sh -c "$cmd" >/dev/null 2>&1 & ;;
+        esac
+    done <"$config_path"
 done

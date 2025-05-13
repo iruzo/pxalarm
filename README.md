@@ -26,7 +26,7 @@ curl https://raw.githubusercontent.com/iruzo/pxalarm/main/pxalarm -o pxalarm
 2. Set your alarms in that file with the following format:
 
 ```
-[YYYY-mm-DD HH:MM u q] command
+* * * * * * * command
 ```
 
 3. Launch the program with the following command. It will check the config
@@ -48,21 +48,16 @@ running in the foreground.
 Time can be replaced with * to match any time. The following formats are
 supported:
 ```
-# YYYY: 4-digit year
-# mm: 2-digit month
-# DD: 2-digit day
-# HH: 2-digit hour (24-hour format)
-# MM: 2-digit minute
-# u: weekday (1 for Monday, 2 for Tuesday, ..., 7 for Sunday)
-# q: quarter of year (1, 2, 3, 4)
-
-[YYYY-mm-DD HH:MM u q] command            # command will be executed at that specific moment if that day is u and quarter of year is q.
-[*-mm-DD HH:MM u q] command               # command will be executed every year at that specific moment if that day is u and quarter of year is q.
-[YYYY-*-DD HH:MM u q] command             # command will be executed every month of YYYY at that specific moment if that day is u and quarter of year is q.
-[YYYY-mm-* HH:MM u q] command             # command will be executed every day of that month at that specific moment if that day is u and quarter of year is q.
-[YYYY-mm-DD *:MM u q] command             # command will be executed every hour at minute mm of that day if that day is u and quarter of year is q.
-[YYYY-mm-DD HH:* u q] command             # command will be executed every minute of that hour on day u and quarter of year q.
-[YYYY-mm-DD HH:MM * q] command            # command will be executed at that specific moment every day on the quarter q of the year.
-[YYYY-mm-DD HH:MM u *] command            # command will be executed at that specific moment on day u, no matter the quarter of year.
-[*-*-* *:* * *] command                   # command will always be executed every minute.
+┌───── min (00-59, * = any)
+│ ┌─── hour (00-23)
+│ │ ┌─ day-of-month (01-31)
+│ │ │ ┌ month (01-12)
+│ │ │ │ ┌ weekday (1-7, 1 = Monday)
+│ │ │ │ │ ┌─[optional] year    (YYYY)
+│ │ │ │ │ │ ┌─[optional] quarter (1-4)
+│ │ │ │ │ │ │
+* * * * *                 echo "tick every minute"
+00 08 * * 1               printf '%s\n' "every Monday 08:00"
+30 07 01 01 * 2026        echo "07:30 on 1 Jan 2026"
+*  *  *  * * * 1          echo "every minute, but only in Q1"
 ```
